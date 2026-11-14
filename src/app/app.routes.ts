@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, groupGuard, guestGuard } from './core/guards/auth.guards';
+import { adminGuard, authGuard, groupGuard, guestGuard } from './core/guards/auth.guards';
 import { MainLayout } from './layout/main-layout/main-layout';
 
 export const routes: Routes = [
@@ -39,8 +39,23 @@ export const routes: Routes = [
         pathMatch: 'full',
         loadComponent: () => import('./features/home/home').then((m) => m.Home),
       },
-      // Admin-only screens get `canActivate: [adminGuard]` (import it from auth.guards), e.g.:
-      // { path: 'admin/task-sets', canActivate: [adminGuard], loadComponent: ... },
+      // Admin-only screens: one guard for the whole `admin` branch
+      {
+        path: 'admin',
+        canActivate: [adminGuard],
+        children: [
+          {
+            path: 'task-sets',
+            loadComponent: () =>
+              import('./features/admin/task-sets/task-set-list').then((m) => m.TaskSetList),
+          },
+          {
+            path: 'task-sets/:id',
+            loadComponent: () =>
+              import('./features/admin/task-sets/task-set-editor').then((m) => m.TaskSetEditor),
+          },
+        ],
+      },
     ],
   },
 

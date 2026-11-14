@@ -12,7 +12,18 @@
         }
       </a>
 
-      <!-- Navigation links for further screens (task sets, classes, ranking) go here. -->
+      @if (session.isAdmin()) {
+        <nav class="mr-auto flex items-center gap-1 text-sm">
+          <a
+            routerLink="/admin/task-sets"
+            routerLinkActive="bg-slate-100 text-slate-900"
+            class="rounded-md px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-50"
+          >
+            Zestawy zadań
+          </a>
+          <!-- Links to further admin screens (classes, ...) go here. -->
+        </nav>
+      }
 
       <button
         mat-icon-button
