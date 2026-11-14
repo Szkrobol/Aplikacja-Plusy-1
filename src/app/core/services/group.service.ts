@@ -22,7 +22,7 @@ export class GroupService {
     if (error) {
       return { ok: false, message: this.joinMessage(error) };
     }
-    return { ok: true, groupId: data as string };
+    return { ok: true, groupId: data };
   }
 
   /** Maps Postgres errors raised by `join_group` to messages shown to the user. */

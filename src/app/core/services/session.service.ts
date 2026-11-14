@@ -1,20 +1,15 @@
 import { computed, inject, Service, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { Session } from '@supabase/supabase-js';
+import { Enums } from '../database.types';
 import { SupabaseService } from './supabase.service';
 
-export type MemberRole = 'student' | 'admin';
+export type MemberRole = Enums<'member_role'>;
 
 export interface Membership {
   groupId: string;
   groupName: string;
   role: MemberRole;
-}
-
-/** Row shape returned by the `group_members` query below. */
-interface MembershipRow {
-  role: MemberRole;
-  groups: { id: string; name: string } | null;
 }
 
 /**
@@ -108,15 +103,11 @@ export class SessionService {
       throw error;
     }
 
-    // Replace the cast with generated types once database.types.ts is wired into the client.
-    const rows = (data ?? []) as unknown as MembershipRow[];
-    const memberships = rows
-      .filter((row) => row.groups !== null)
-      .map((row) => ({
-        groupId: row.groups!.id,
-        groupName: row.groups!.name,
-        role: row.role,
-      }));
+    const memberships: Membership[] = (data ?? []).flatMap((row) =>
+      row.groups
+        ? [{ groupId: row.groups.id, groupName: row.groups.name, role: row.role }]
+        : [],
+    );
 
     // Ignore the result if the user changed while the request was running.
     if (this._session()?.user.id === userId) {
