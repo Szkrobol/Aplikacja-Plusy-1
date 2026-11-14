@@ -41,6 +41,11 @@ export class AuthService {
     return { ok: true };
   }
 
+  /** Clears the local session and revokes the refresh token. */
+  async signOut(): Promise<void> {
+    await this.supabase.client.auth.signOut();
+  }
+
   private normalizeEmail(email: string): string {
     return email.trim().toLowerCase();
   }
