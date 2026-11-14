@@ -54,6 +54,16 @@ export const routes: Routes = [
             loadComponent: () =>
               import('./features/admin/task-sets/task-set-editor').then((m) => m.TaskSetEditor),
           },
+          {
+            path: 'classes',
+            loadComponent: () =>
+              import('./features/admin/classes/class-list').then((m) => m.ClassList),
+          },
+          {
+            path: 'classes/:id',
+            loadComponent: () =>
+              import('./features/admin/classes/class-editor').then((m) => m.ClassEditor),
+          },
         ],
       },
     ],
