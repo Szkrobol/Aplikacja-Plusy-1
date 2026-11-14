@@ -19,6 +19,17 @@ export interface ClassDetail {
   taskSetIds: string[];
 }
 
+export interface ClassTaskSet {
+  id: string;
+  name: string;
+  subtasks: { id: string; task_no: number; subtask_no: number }[];
+}
+
+export interface ClassWithTasks {
+  row: ClassRow;
+  taskSets: ClassTaskSet[];
+}
+
 /** Classes of a group. Every method throws if the query fails. */
 @Service()
 export class ClassService {
@@ -81,6 +92,26 @@ export class ClassService {
 
     const { class_task_sets, ...row } = data;
     return { row, taskSetIds: class_task_sets.map((link) => link.task_set_id) };
+  }
+
+  /** A class with the task sets assigned to it and their subtasks (student view). */
+  async getWithTasks(id: string): Promise<ClassWithTasks> {
+    const { data, error } = await this.supabase.client
+      .from('classes')
+      .select('*, class_task_sets(task_sets(id, name, subtasks(id, task_no, subtask_no)))')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    const { class_task_sets, ...row } = data;
+    const taskSets = class_task_sets
+      .flatMap((link) => (link.task_sets ? [link.task_sets] : []))
+      .sort((a, b) => a.name.localeCompare(b.name, 'pl', { numeric: true }));
+
+    return { row, taskSets };
   }
 
   /** Creates a draft class and returns its id. */

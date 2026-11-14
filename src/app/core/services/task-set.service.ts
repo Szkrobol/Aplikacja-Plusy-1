@@ -108,8 +108,7 @@ export class TaskSetService {
       task_set_id: taskSetId,
       task_no: taskNo,
       subtask_no: from + index,
-      // Chances are not used in the app: always null (= the database default).
-      probability: null,
+      probability: 1,
     }));
 
     const { error } = await this.supabase.client.from('subtasks').insert(rows);

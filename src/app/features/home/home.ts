@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { RouterLink } from '@angular/router';
 import { CLASS_STATUS_CHIP, CLASS_STATUS_LABELS, isRoundOpen } from '../../core/class-status';
 import { parseIsoDate } from '../../core/date-utils';
 import { ClassRow, ClassService } from '../../core/services/class.service';
@@ -9,7 +10,7 @@ import { SessionService } from '../../core/services/session.service';
 
 @Component({
   selector: 'app-home',
-  imports: [MatButtonModule, MatProgressSpinnerModule],
+  imports: [RouterLink, MatButtonModule, MatProgressSpinnerModule],
   templateUrl: './home.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -40,6 +41,11 @@ export class Home {
 
   constructor() {
     void this.load();
+  }
+
+  /** Students open the class page; drafts exist only for admins, who edit them. */
+  protected classLink(item: ClassRow): string[] {
+    return item.status === 'draft' ? ['/admin/classes', item.id] : ['/classes', item.id];
   }
 
   protected formatDay(iso: string): string {

@@ -39,6 +39,11 @@ export const routes: Routes = [
         pathMatch: 'full',
         loadComponent: () => import('./features/home/home').then((m) => m.Home),
       },
+      {
+        path: 'classes/:id',
+        loadComponent: () =>
+          import('./features/classes/class-detail').then((m) => m.ClassDetail),
+      },
       // Admin-only screens: one guard for the whole `admin` branch
       {
         path: 'admin',

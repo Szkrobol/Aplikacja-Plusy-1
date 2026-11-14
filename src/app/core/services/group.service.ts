@@ -25,6 +25,29 @@ export class GroupService {
     return { ok: true, groupId: data };
   }
 
+  /** Display names of a group's members, keyed by user id. Throws if the query fails. */
+  async members(groupId: string): Promise<Map<string, string>> {
+    const { data, error } = await this.supabase.client
+      .from('group_members')
+      .select('user_id, profiles(first_name, last_name, email)')
+      .eq('group_id', groupId);
+
+    if (error) {
+      throw error;
+    }
+
+    return new Map(
+      data.map((row) => {
+        const profile = row.profiles;
+        const name = [profile?.first_name, profile?.last_name]
+          .map((part) => part?.trim())
+          .filter(Boolean)
+          .join(' ');
+        return [row.user_id, name || profile?.email || 'Nieznana osoba'];
+      }),
+    );
+  }
+
   /** Maps Postgres errors raised by `join_group` to messages shown to the user. */
   private joinMessage(error: PostgrestError): string {
     switch (error.code) {
