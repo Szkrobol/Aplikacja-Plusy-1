@@ -84,6 +84,8 @@ export class Register {
       return;
     }
 
-    await this.router.navigate(result.session ? ['/join-group'] : ['/login']);
+    // Email confirmation is disabled, so a session exists right away and the
+    // user continues with the profile step. Without a session, fall back to login.
+    await this.router.navigate(result.session ? ['/profile'] : ['/login']);
   }
 }

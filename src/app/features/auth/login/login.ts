@@ -6,6 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { safeReturnUrl } from '../../../core/return-url';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -63,15 +64,6 @@ export class Login {
       return;
     }
 
-    await this.router.navigateByUrl(this.returnUrl());
-  }
-
-  /**
-   * Where to go after signing in: the page the guard redirected from
-   * (`?returnUrl=...`), or the app root. Only in-app paths are accepted.
-   */
-  private returnUrl(): string {
-    const url = this.route.snapshot.queryParamMap.get('returnUrl');
-    return url && url.startsWith('/') && !url.startsWith('//') ? url : '/';
+    await this.router.navigateByUrl(safeReturnUrl(this.route.snapshot.queryParamMap.get('returnUrl')));
   }
 }

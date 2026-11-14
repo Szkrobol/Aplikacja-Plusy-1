@@ -15,7 +15,12 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/register/register').then((m) => m.Register),
   },
 
-  // Signed in, but no group required yet
+  // Signed in, but no profile or group required yet
+  {
+    path: 'profile',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/profile/profile').then((m) => m.ProfilePage),
+  },
   {
     path: 'join-group',
     canActivate: [authGuard],
