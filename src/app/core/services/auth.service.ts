@@ -6,6 +6,8 @@ export type SignUpResult =
   | { ok: true; session: Session | null }
   | { ok: false; message: string };
 
+export type SignInResult = { ok: true } | { ok: false; message: string };
+
 @Service()
 export class AuthService {
   private readonly supabase = inject(SupabaseService);
@@ -16,18 +18,35 @@ export class AuthService {
    */
   async signUp(email: string, password: string): Promise<SignUpResult> {
     const { data, error } = await this.supabase.client.auth.signUp({
-      email: email.trim().toLowerCase(),
+      email: this.normalizeEmail(email),
       password,
     });
 
     if (error) {
-      return { ok: false, message: this.toMessage(error) };
+      return { ok: false, message: this.signUpMessage(error) };
     }
     return { ok: true, session: data.session };
   }
 
-  /** Maps Supabase error codes to messages shown to the user. */
-  private toMessage(error: AuthError): string {
+  /** Signs in with email and password. supabase-js stores and refreshes the session itself. */
+  async signIn(email: string, password: string): Promise<SignInResult> {
+    const { error } = await this.supabase.client.auth.signInWithPassword({
+      email: this.normalizeEmail(email),
+      password,
+    });
+
+    if (error) {
+      return { ok: false, message: this.signInMessage(error) };
+    }
+    return { ok: true };
+  }
+
+  private normalizeEmail(email: string): string {
+    return email.trim().toLowerCase();
+  }
+
+  /** Maps Supabase sign-up error codes to messages shown to the user. */
+  private signUpMessage(error: AuthError): string {
     switch (error.code) {
       case 'user_already_exists':
       case 'email_exists':
@@ -45,6 +64,23 @@ export class AuthService {
         return 'Nie udało się utworzyć konta. Użyj adresu @student.agh.edu.pl.';
       default:
         return 'Nie udało się utworzyć konta. Spróbuj ponownie.';
+    }
+  }
+
+  /** Maps Supabase sign-in error codes to messages shown to the user. */
+  private signInMessage(error: AuthError): string {
+    switch (error.code) {
+      case 'invalid_credentials':
+        // Supabase does not reveal whether the email or the password was wrong.
+        return 'Nieprawidłowy adres e-mail lub hasło.';
+      case 'email_not_confirmed':
+        return 'Adres e-mail nie został potwierdzony.';
+      case 'user_banned':
+        return 'To konto jest zablokowane.';
+      case 'over_request_rate_limit':
+        return 'Zbyt wiele prób. Odczekaj chwilę i spróbuj ponownie.';
+      default:
+        return 'Nie udało się zalogować. Spróbuj ponownie.';
     }
   }
 }
