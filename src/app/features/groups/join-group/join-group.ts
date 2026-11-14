@@ -7,6 +7,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { GroupService } from '../../../core/services/group.service';
+import { SessionService } from '../../../core/services/session.service';
 
 @Component({
   selector: 'app-join-group',
@@ -24,6 +25,7 @@ export class JoinGroup {
   private readonly fb = inject(FormBuilder);
   private readonly groups = inject(GroupService);
   private readonly auth = inject(AuthService);
+  private readonly session = inject(SessionService);
   private readonly router = inject(Router);
 
   protected readonly form = this.fb.nonNullable.group({
@@ -53,6 +55,13 @@ export class JoinGroup {
     if (!result.ok) {
       this.serverError.set(result.message);
       return;
+    }
+
+    // Memberships are cached, so reload them before the group guard runs again.
+    try {
+      await this.session.refreshMemberships();
+    } catch {
+      // Cache stays empty on failure; the group guard will retry the query.
     }
 
     // TODO: point this at the group view once it exists.
