@@ -69,6 +69,11 @@ export const routes: Routes = [
             loadComponent: () =>
               import('./features/admin/classes/class-editor').then((m) => m.ClassEditor),
           },
+          {
+            path: 'points',
+            loadComponent: () =>
+              import('./features/admin/points/points-admin').then((m) => m.PointsAdmin),
+          },
         ],
       },
     ],

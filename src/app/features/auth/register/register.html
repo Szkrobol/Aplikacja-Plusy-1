@@ -66,6 +66,22 @@
         }
       </mat-form-field>
 
+      <!-- Points from earlier classes -->
+      <mat-form-field appearance="outline" class="my-2 w-full">
+        <mat-label>Plusy, które już masz (opcjonalnie)</mat-label>
+        <input
+          matInput
+          type="number"
+          min="0"
+          [max]="maxStartingPoints"
+          formControlName="startingPoints"
+          autocomplete="off"
+        />
+        @if (form.controls.startingPoints.invalid) {
+          <mat-error>Podaj liczbę całkowitą od 0 do {{ maxStartingPoints }}.</mat-error>
+        }
+      </mat-form-field>
+
       <!-- Error returned by Supabase -->
       @if (serverError(); as message) {
         <div

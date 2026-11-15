@@ -1,6 +1,11 @@
 import { inject, Service } from '@angular/core';
 import { SupabaseService } from './supabase.service';
 
+export interface DeclaredRow {
+  subtaskId: string;
+  round: number;
+}
+
 /**
  * A student's declarations ("I want this subtask") for a class.
  * RLS decides whether a round is open, so writes fail once it closes. Methods throw on failure.
@@ -9,18 +14,18 @@ import { SupabaseService } from './supabase.service';
 export class DeclarationService {
   private readonly supabase = inject(SupabaseService);
 
-  /** Ids of the subtasks the user declared for the class (all rounds). */
-  async mine(classId: string, userId: string): Promise<string[]> {
+  /** The user's declarations for the class, with the round each one was made in. */
+  async mine(classId: string, userId: string): Promise<DeclaredRow[]> {
     const { data, error } = await this.supabase.client
       .from('declarations')
-      .select('subtask_id')
+      .select('subtask_id, round')
       .eq('class_id', classId)
       .eq('user_id', userId);
 
     if (error) {
       throw error;
     }
-    return data.map((row) => row.subtask_id);
+    return data.map((row) => ({ subtaskId: row.subtask_id, round: row.round }));
   }
 
   /**

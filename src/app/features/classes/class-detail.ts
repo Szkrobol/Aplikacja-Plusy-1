@@ -20,26 +20,33 @@ import { DeclarationService } from '../../core/services/declaration.service';
 import { GroupService } from '../../core/services/group.service';
 import { SessionService } from '../../core/services/session.service';
 import { AssignmentsView } from '../../shared/assignments-view/assignments-view';
+import { ClassPoints } from './class-points';
 
 const NOT_FOUND_CODE = 'PGRST116'; // `.single()` matched no row (missing id or hidden by RLS)
 
-/** Messages for classes that are not accepting round 1 declarations right now. */
+/** Messages for a class whose open round cannot be changed (deadline passed) or that is past its rounds. */
 const CLOSED_MESSAGES: Record<ClassRow['status'], string> = {
   draft: '',
   round1_open: 'Termin zapisów minął. Poniżej widać podpunkty, które zgłosiłeś.',
-  round2_open: 'Tura 1 jest zakończona. Poniżej widać przydział z tej tury.',
+  round2_open: 'Termin zapisów w turze 2 minął. Poniżej widać wolne podpunkty i przydział z tury 1.',
   assigned: 'Zapisy są zamknięte. Poniżej widać przydział podpunktów.',
   finished: 'Te zajęcia już się zakończyły. Poniżej widać przydział podpunktów.',
 };
 
 /**
- * A class as the student sees it. While round 1 is open it lists the task sets and subtasks,
- * where the student marks the ones they want to present (each click is saved immediately; the UI
- * updates first and rolls back if the save fails). Afterwards it shows who got which subtask.
+ * A class as the student sees it.
+ *
+ * Round 1: all subtasks of the class's task sets; the student marks the ones they want.
+ * Round 2: only subtasks nobody got in round 1; the student can add more. Declarations made in
+ * round 1 stay (they still count) but are locked, because the database only lets a declaration
+ * be withdrawn while its own round is open.
+ * Afterwards: who got which subtask.
+ *
+ * Each click is saved immediately; the UI updates first and rolls back if the save fails.
  */
 @Component({
   selector: 'app-class-detail',
-  imports: [RouterLink, MatButtonModule, MatProgressSpinnerModule, AssignmentsView],
+  imports: [RouterLink, MatButtonModule, MatProgressSpinnerModule, AssignmentsView, ClassPoints],
   templateUrl: './class-detail.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -71,7 +78,7 @@ export class ClassDetail {
 
   protected readonly row = signal<ClassRow | null>(null);
   protected readonly sets = signal<SetView[]>([]);
-  /** True while round 1 is open and the deadline has not passed. */
+  /** True while a round is open and its deadline has not passed. */
   protected readonly editable = signal(false);
 
   protected readonly assignmentRows = signal<AssignmentRow[]>([]);
@@ -79,19 +86,57 @@ export class ClassDetail {
   protected readonly currentUserId = computed(() => this.session.user()?.id ?? null);
 
   private readonly selected = signal<ReadonlySet<string>>(new Set());
+  /** Declared in an earlier round: still counts, but cannot be changed any more. */
+  private readonly lockedIds = signal<ReadonlySet<string>>(new Set());
   /** Subtasks with a save in flight; they cannot be clicked again until it finishes. */
   private readonly pending = signal<ReadonlySet<string>>(new Set());
 
-  /** Number of declared subtasks that are part of this class. */
+  /** 1 or 2 while that round is open (also after its deadline), otherwise null. */
+  protected readonly currentRound = computed<1 | 2 | null>(() => {
+    const status = this.row()?.status;
+    return status === 'round1_open' ? 1 : status === 'round2_open' ? 2 : null;
+  });
+
+  /** Subtasks nobody got in round 1 (also those without an assignment row, like the database). */
+  private readonly freeSets = computed<SetView[]>(() => {
+    const taken = new Set(
+      this.assignmentRows().filter((row) => row.userId !== null).map((row) => row.subtaskId),
+    );
+
+    return this.sets()
+      .map((set) => ({
+        ...set,
+        tasks: set.tasks
+          .map((task) => ({ ...task, subtasks: task.subtasks.filter((s) => !taken.has(s.id)) }))
+          .filter((task) => task.subtasks.length > 0),
+      }))
+      .filter((set) => set.tasks.length > 0);
+  });
+
+  /** What the student can mark: everything in round 1, only the free subtasks in round 2. */
+  protected readonly declareSets = computed<SetView[]>(() => {
+    const round = this.currentRound();
+    return round === 1 ? this.sets() : round === 2 ? this.freeSets() : [];
+  });
+
+  /** Number of declared subtasks among the ones shown for declaring. */
   protected readonly selectedCount = computed(() => {
     const selected = this.selected();
     let count = 0;
-    for (const set of this.sets()) {
+    for (const set of this.declareSets()) {
       for (const task of set.tasks) {
         count += task.subtasks.filter((subtask) => selected.has(subtask.id)).length;
       }
     }
     return count;
+  });
+
+  /** True when some of the shown subtasks were declared in an earlier round. */
+  protected readonly hasLocked = computed(() => {
+    const locked = this.lockedIds();
+    return this.declareSets().some((set) =>
+      set.tasks.some((task) => task.subtasks.some((subtask) => locked.has(subtask.id))),
+    );
   });
 
   /** Labels ("2.1") of the subtasks assigned to the current user, in order. */
@@ -144,7 +189,7 @@ export class ClassDetail {
 
       // Assignments exist once round 1 has been assigned.
       const hasAssignments = this.showsAssignments(detail.row.status);
-      const [mine, assignmentRows, names] = await Promise.all([
+      const [declared, assignmentRows, names] = await Promise.all([
         this.declarations.mine(this.classId, user.id),
         hasAssignments ? this.assignments.forClass(this.classId) : Promise.resolve<AssignmentRow[]>([]),
         hasAssignments ? this.groups.members(detail.row.group_id) : Promise.resolve(new Map<string, string>()),
@@ -152,10 +197,17 @@ export class ClassDetail {
 
       this.row.set(detail.row);
       this.sets.set(buildSets(detail.taskSets));
-      this.selected.set(new Set(mine));
+      this.selected.set(new Set(declared.map((entry) => entry.subtaskId)));
+      this.lockedIds.set(
+        new Set(
+          detail.row.status === 'round2_open'
+            ? declared.filter((entry) => entry.round === 1).map((entry) => entry.subtaskId)
+            : [],
+        ),
+      );
       this.assignmentRows.set(assignmentRows);
       this.names.set(names);
-      this.editable.set(this.isRoundOneOpen(detail.row));
+      this.editable.set(this.isDeclaringOpen(detail.row));
     } catch (error) {
       const code = (error as { code?: string }).code;
       this.loadError.set(code === NOT_FOUND_CODE ? 'not-found' : 'failed');
@@ -168,8 +220,9 @@ export class ClassDetail {
     return status === 'round2_open' || status === 'assigned' || status === 'finished';
   }
 
-  private isRoundOneOpen(row: ClassRow): boolean {
-    if (row.status !== 'round1_open') {
+  /** A round is open and its deadline (if any) has not passed. */
+  private isDeclaringOpen(row: ClassRow): boolean {
+    if (row.status !== 'round1_open' && row.status !== 'round2_open') {
       return false;
     }
     return !row.declarations_deadline || Date.now() < new Date(row.declarations_deadline).getTime();
@@ -181,13 +234,28 @@ export class ClassDetail {
     return this.selected().has(subtaskId);
   }
 
+  protected isLocked(subtaskId: string): boolean {
+    return this.lockedIds().has(subtaskId);
+  }
+
   protected isPending(subtaskId: string): boolean {
     return this.pending().has(subtaskId);
   }
 
+  /** Subtasks of the task that can still be changed. */
+  private toggleableIds(task: TaskView): string[] {
+    const locked = this.lockedIds();
+    return task.subtasks.filter((subtask) => !locked.has(subtask.id)).map((subtask) => subtask.id);
+  }
+
+  protected canToggleTask(task: TaskView): boolean {
+    return this.toggleableIds(task).length > 0;
+  }
+
   protected allSelected(task: TaskView): boolean {
     const selected = this.selected();
-    return task.subtasks.every((subtask) => selected.has(subtask.id));
+    const ids = this.toggleableIds(task);
+    return ids.length > 0 && ids.every((id) => selected.has(id));
   }
 
   // ----- Declaring -----
@@ -196,21 +264,21 @@ export class ClassDetail {
     return this.apply([subtaskId], !this.selected().has(subtaskId));
   }
 
-  /** Selects every subtask of the task, or clears them all if they are already all selected. */
+  /** Selects every changeable subtask of the task, or clears them all if they are already all selected. */
   protected toggleTask(task: TaskView): Promise<void> {
-    const ids = task.subtasks.map((subtask) => subtask.id);
-    return this.apply(ids, !this.allSelected(task));
+    return this.apply(this.toggleableIds(task), !this.allSelected(task));
   }
 
   private async apply(ids: string[], select: boolean): Promise<void> {
     const user = this.session.user();
     const row = this.row();
-    if (!user || !row || !this.editable()) {
+    const round = this.currentRound();
+    if (!user || !row || !round || !this.editable()) {
       return;
     }
 
     // The deadline may have passed while the page was open.
-    if (!this.isRoundOneOpen(row)) {
+    if (!this.isDeclaringOpen(row)) {
       this.editable.set(false);
       this.snackBar.open('Zapisy zostały zamknięte.', 'OK', { duration: 5000 });
       return;
@@ -221,8 +289,9 @@ export class ClassDetail {
       return;
     }
 
-    // Only the subtasks whose state really changes (a task may be partly selected already).
-    const changing = ids.filter((id) => this.selected().has(id) !== select);
+    // Only subtasks whose state really changes; ones from an earlier round are locked.
+    const locked = this.lockedIds();
+    const changing = ids.filter((id) => !locked.has(id) && this.selected().has(id) !== select);
     if (changing.length === 0) {
       return;
     }
@@ -232,7 +301,7 @@ export class ClassDetail {
 
     try {
       if (select) {
-        await this.declarations.add(this.classId, user.id, changing);
+        await this.declarations.add(this.classId, user.id, changing, round);
       } else {
         await this.declarations.remove(this.classId, user.id, changing);
       }

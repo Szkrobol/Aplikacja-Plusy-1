@@ -8,6 +8,10 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import {
+  MAX_STARTING_POINTS,
+  StartingPointsService,
+} from '../../../core/services/starting-points.service';
 import { aghEmailValidator } from '../../../core/validators/agh-email.validator';
 
 const MIN_PASSWORD_LENGTH = 8;
@@ -37,14 +41,21 @@ const matchesPassword: ValidatorFn = (control) => {
 export class Register {
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
+  private readonly startingPoints = inject(StartingPointsService);
   private readonly router = inject(Router);
 
   protected readonly minPasswordLength = MIN_PASSWORD_LENGTH;
+  protected readonly maxStartingPoints = MAX_STARTING_POINTS;
 
   protected readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, aghEmailValidator]],
     password: ['', [Validators.required, Validators.minLength(MIN_PASSWORD_LENGTH)]],
     confirmPassword: ['', [Validators.required, matchesPassword]],
+    /** Points the student already has from earlier classes (optional). */
+    startingPoints: [
+      0,
+      [Validators.min(0), Validators.max(MAX_STARTING_POINTS), Validators.pattern(/^\d+$/)],
+    ],
   });
 
   protected readonly submitting = signal(false);
@@ -74,7 +85,7 @@ export class Register {
     this.submitting.set(true);
     this.serverError.set(null);
 
-    const { email, password } = this.form.getRawValue();
+    const { email, password, startingPoints } = this.form.getRawValue();
     const result = await this.auth.signUp(email, password);
 
     this.submitting.set(false);
@@ -86,6 +97,10 @@ export class Register {
 
     // Email confirmation is disabled, so a session exists right away and the
     // user continues with the profile step. Without a session, fall back to login.
+    if (result.session) {
+      // Written to the ledger once the user joins a group. An empty field counts as 0.
+      this.startingPoints.remember(result.session.user.id, Number(startingPoints) || 0);
+    }
     await this.router.navigate(result.session ? ['/profile'] : ['/login']);
   }
 }

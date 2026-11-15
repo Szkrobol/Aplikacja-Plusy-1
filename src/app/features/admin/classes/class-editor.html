@@ -71,6 +71,11 @@
               <p class="mt-1 text-sm text-slate-500">Nikt jeszcze się nie zgłosił.</p>
             }
           }
+          @if (deadlinePassed()) {
+            <p role="alert" class="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              Termin zapisów minął, więc studenci nie mogą już zmieniać zgłoszeń. Zmień lub wyczyść termin w sekcji „Termin”, jeśli chcesz to zmienić.
+            </p>
+          }
           <button
             mat-flat-button
             type="button"
@@ -96,6 +101,11 @@
               {{ plural(stats.declarations, 'zgłoszenie', 'zgłoszenia', 'zgłoszeń') }})
             }
           </p>
+          @if (deadlinePassed()) {
+            <p role="alert" class="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              Termin zapisów minął, więc studenci nie mogą się dopisywać. Zmień lub wyczyść termin w sekcji „Termin”, żeby tura 2 mogła ruszyć.
+            </p>
+          }
           <button
             mat-flat-button
             type="button"

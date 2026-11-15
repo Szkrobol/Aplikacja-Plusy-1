@@ -114,6 +114,15 @@ export class ClassEditor {
     return Math.ceil(this.totalSubtasks() / stats.students);
   });
 
+  /**
+   * True when the deadline has passed. The database then rejects new declarations in the open
+   * round, so students cannot sign up until the deadline is changed or cleared.
+   */
+  protected readonly deadlinePassed = computed(() => {
+    const deadline = this.row()?.declarations_deadline;
+    return !!deadline && Date.now() >= new Date(deadline).getTime();
+  });
+
   protected readonly assignedCount = computed(
     () => this.assignmentRows().filter((entry) => entry.userId !== null).length,
   );
@@ -326,6 +335,11 @@ export class ClassEditor {
     let note = `Przydział zapisany: ${assigned} z ${result.assignments.length} podpunktów.`;
     if (result.limitPerPerson !== null) {
       note += ` Limit w turze 1: ${result.limitPerPerson} na osobę.`;
+    }
+    if (round === 1 && this.row()?.declarations_deadline) {
+      note +=
+        ' Termin zapisów z tury 1 mógł już minąć. Ustaw nowy albo wyczyść go w sekcji „Termin”,' +
+        ' inaczej studenci nie dopiszą się w turze 2.';
     }
     this.resultNote.set(note);
     await this.refresh();
