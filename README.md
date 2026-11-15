@@ -1,59 +1,16 @@
-# AplikacjaPlusy
+# Plusy
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.2.3.
+Aplikacja dla grup studenckich na zajęciach audytoryjnych (tablicowych). Zastępuje zapisy w arkuszu: studenci zaznaczają podpunkty zadań, które chcą zrobić, aplikacja proponuje sprawiedliwy przydział, a plusy z zajęć są zapisywane w jednym miejscu.
 
-## Development server
+Wersja: **1.0.0**
 
-To start a local development server, run:
+## Jak to działa
 
-```bash
-ng serve
-```
+1. **Konto i grupa.** Rejestracja adresem `@student.agh.edu.pl` (e-mail i hasło), uzupełnienie imienia i nazwiska, dołączenie do grupy kodem zaproszenia. Grupy zakłada się w bazie.
+2. **Zestawy zadań.** Administrator grupy wpisuje zestawy raz: zadania i podpunkty. Numery można podawać ręcznie, więc zestaw da się dokończyć na kolejnych zajęciach.
+3. **Zajęcia.** Administrator tworzy zajęcia, wskazuje zestawy, ustawia termin zapisów i otwiera zapisy.
+4. **Tura 1.** Każdy zaznacza podpunkty, które chce zrobić. Administrator uruchamia przydział, a limit na osobę liczy się sam.
+5. **Tura 2.** Wolne podpunkty widzą wszyscy i mogą się do nich dopisać. Drugi przydział działa bez limitu.
+6. **Plusy.** Po zajęciach student wpisuje sobie plusa za dowolny podpunkt, a administrator może dodawać wpisy i korygować pomyłki. Historia wpisów jest niezmienna. Przy rejestracji można podać plusy zdobyte wcześniej.
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+Przydział jest propozycją dla grupy, na zajęciach i tak decyduje prowadzący.
