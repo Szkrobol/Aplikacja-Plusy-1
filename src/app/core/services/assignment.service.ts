@@ -17,6 +17,12 @@ export interface AssignResult {
   limitPerPerson: number | null;
 }
 
+/** `rpc` without the generated types, used until the types include `release_assignments`. */
+type LooseRpc = (
+  fn: string,
+  args: Record<string, unknown>,
+) => PromiseLike<{ data: unknown; error: { code?: string; message: string } | null }>;
+
 @Service()
 export class AssignmentService {
   private readonly supabase = inject(SupabaseService);
@@ -50,6 +56,36 @@ export class AssignmentService {
       throw new UserFacingError('Funkcja przydziału nie zwróciła wyniku.');
     }
     return data;
+  }
+
+  /**
+   * Gives up subtasks assigned to the current user so that others can take them in round 2.
+   * Calls the `release_assignments` database function: students cannot change `assignments`
+   * themselves. Returns how many subtasks were released. Throws a UserFacingError on failure.
+   */
+  async release(classId: string, subtaskIds: string[]): Promise<number> {
+    // TODO: use the typed `rpc` once the generated types contain `release_assignments`.
+    const rpc = this.supabase.client.rpc.bind(this.supabase.client) as unknown as LooseRpc;
+    const { data, error } = await rpc('release_assignments', {
+      p_class_id: classId,
+      p_subtask_ids: subtaskIds,
+    });
+
+    if (error) {
+      throw new UserFacingError(this.releaseMessage(error));
+    }
+    return Number(data ?? 0);
+  }
+
+  private releaseMessage(error: { code?: string; message: string }): string {
+    switch (error.code) {
+      case 'PGRST202': // function not found in the schema cache
+        return 'Rezygnacja nie jest jeszcze dostępna na serwerze.';
+      case 'P0001': // `raise exception` in the function carries a Polish message
+        return error.message;
+      default:
+        return 'Nie udało się zrezygnować z podpunktów.';
+    }
   }
 
   private messageFor(error: unknown): string {

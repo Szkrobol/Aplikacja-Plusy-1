@@ -21,6 +21,7 @@ import { GroupService } from '../../core/services/group.service';
 import { SessionService } from '../../core/services/session.service';
 import { AssignmentsView } from '../../shared/assignments-view/assignments-view';
 import { ClassPoints } from './class-points';
+import { MyAssignmentItem, MyAssignments } from './my-assignments';
 
 const NOT_FOUND_CODE = 'PGRST116'; // `.single()` matched no row (missing id or hidden by RLS)
 
@@ -46,7 +47,14 @@ const CLOSED_MESSAGES: Record<ClassRow['status'], string> = {
  */
 @Component({
   selector: 'app-class-detail',
-  imports: [RouterLink, MatButtonModule, MatProgressSpinnerModule, AssignmentsView, ClassPoints],
+  imports: [
+    RouterLink,
+    MatButtonModule,
+    MatProgressSpinnerModule,
+    AssignmentsView,
+    ClassPoints,
+    MyAssignments,
+  ],
   templateUrl: './class-detail.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -139,8 +147,8 @@ export class ClassDetail {
     );
   });
 
-  /** Labels ("2.1") of the subtasks assigned to the current user, in order. */
-  protected readonly myAssigned = computed(() => {
+  /** The subtasks assigned to the current user, in order. */
+  protected readonly myAssignedItems = computed<MyAssignmentItem[]>(() => {
     const me = this.currentUserId();
     if (!me) {
       return [];
@@ -149,18 +157,27 @@ export class ClassDetail {
     const mine = new Set(
       this.assignmentRows().filter((row) => row.userId === me).map((row) => row.subtaskId),
     );
-    const labels: string[] = [];
+    const items: MyAssignmentItem[] = [];
     for (const set of this.sets()) {
       for (const task of set.tasks) {
         for (const subtask of task.subtasks) {
           if (mine.has(subtask.id)) {
-            labels.push(`${task.taskNo}.${subtask.subtaskNo}`);
+            items.push({ id: subtask.id, label: `${task.taskNo}.${subtask.subtaskNo}` });
           }
         }
       }
     }
-    return labels;
+    return items;
   });
+
+  /** Labels ("2.1") of the subtasks assigned to the current user. */
+  protected readonly myAssigned = computed(() => this.myAssignedItems().map((item) => item.label));
+
+  /** Giving up an assignment is possible while round 2 is open (others can still take it). */
+  protected readonly canRelease = computed(
+    () =>
+      this.row()?.status === 'round2_open' && this.editable() && this.myAssignedItems().length > 0,
+  );
 
   constructor() {
     void this.load();
@@ -168,15 +185,18 @@ export class ClassDetail {
 
   // ----- Loading -----
 
-  protected async load(): Promise<void> {
+  /** Loads the page. `quiet` reloads in place (no spinner) and only shows a message on failure. */
+  protected async load(quiet = false): Promise<void> {
     const user = this.session.user();
     if (!user) {
       this.loading.set(false);
       return;
     }
 
-    this.loading.set(true);
-    this.loadError.set(null);
+    if (!quiet) {
+      this.loading.set(true);
+      this.loadError.set(null);
+    }
 
     try {
       const detail = await this.classes.getWithTasks(this.classId);
@@ -209,11 +229,22 @@ export class ClassDetail {
       this.names.set(names);
       this.editable.set(this.isDeclaringOpen(detail.row));
     } catch (error) {
-      const code = (error as { code?: string }).code;
-      this.loadError.set(code === NOT_FOUND_CODE ? 'not-found' : 'failed');
+      if (quiet) {
+        this.snackBar.open('Nie udało się odświeżyć strony. Odśwież ją ręcznie.', 'OK', { duration: 6000 });
+      } else {
+        const code = (error as { code?: string }).code;
+        this.loadError.set(code === NOT_FOUND_CODE ? 'not-found' : 'failed');
+      }
     } finally {
-      this.loading.set(false);
+      if (!quiet) {
+        this.loading.set(false);
+      }
     }
+  }
+
+  /** Reloads the class after something changed on the server (e.g. a released assignment). */
+  protected refresh(): Promise<void> {
+    return this.load(true);
   }
 
   private showsAssignments(status: ClassRow['status']): boolean {

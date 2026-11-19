@@ -79,6 +79,15 @@
         Do tych zajęć nie przypisano jeszcze zestawów zadań.
       </p>
     } @else {
+      <!-- Giving up assigned subtasks (round 2) -->
+      @if (canRelease()) {
+        <app-my-assignments
+          [classId]="current.id"
+          [items]="myAssignedItems()"
+          (released)="refresh()"
+        />
+      }
+
       <!-- Marking subtasks: all of them in round 1, only the free ones in round 2 -->
       @if (currentRound() !== null) {
         @if (declareSets().length === 0) {
