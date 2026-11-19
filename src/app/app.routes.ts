@@ -22,6 +22,12 @@ export const routes: Routes = [
     loadComponent: () => import('./features/profile/profile').then((m) => m.ProfilePage),
   },
   {
+    path: 'change-password',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/auth/change-password/change-password').then((m) => m.ChangePassword),
+  },
+  {
     path: 'join-group',
     canActivate: [authGuard],
     loadComponent: () =>
