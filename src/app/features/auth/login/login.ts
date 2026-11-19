@@ -6,8 +6,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { safeReturnUrl } from '../../../core/return-url';
 import { AuthService } from '../../../core/services/auth.service';
+import { version } from '../../../../../package.json';
+import { safeReturnUrl } from '../../../core/return-url';
 
 @Component({
   selector: 'app-login',
@@ -37,6 +38,8 @@ export class Login {
   protected readonly submitting = signal(false);
   protected readonly serverError = signal<string | null>(null);
   protected readonly hidePassword = signal(true);
+
+  protected readonly appVersion = version;
 
   protected togglePasswordVisibility(): void {
     this.hidePassword.update((hidden) => !hidden);

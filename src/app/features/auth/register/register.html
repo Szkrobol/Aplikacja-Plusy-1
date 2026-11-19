@@ -1,11 +1,13 @@
-<main class="flex min-h-dvh items-center justify-center bg-slate-50 px-4 py-10">
-  <section class="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 sm:p-8">
-    <h1 class="text-2xl font-semibold tracking-tight text-slate-900">Załóż konto</h1>
-    <p class="mt-2 text-sm leading-relaxed text-slate-600">
-      Użyj adresu uczelnianego. Do grupy dołączysz w następnym kroku.
-    </p>
+<main class="flex min-h-dvh justify-center overflow-x-hidden bg-slate-50 px-4 py-8 text-slate-900">
+  <section class="my-auto w-full max-w-md rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs sm:p-7">
+    <header>
+      <h1 class="text-2xl font-semibold tracking-tight text-slate-900">Załóż konto</h1>
+      <p class="mt-1.5 text-sm leading-relaxed text-slate-600">
+        Użyj adresu uczelnianego. Do grupy dołączysz w następnym kroku.
+      </p>
+    </header>
 
-    <form class="mt-8 flex flex-col" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <form class="mt-6 flex flex-col gap-1" [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <!-- Email -->
       <mat-form-field appearance="outline" class="w-full">
         <mat-label>Adres e-mail</mat-label>
@@ -51,7 +53,7 @@
       </mat-form-field>
 
       <!-- Password confirmation -->
-      <mat-form-field appearance="outline" class="mt-2 w-full">
+      <mat-form-field appearance="outline" class="w-full">
         <mat-label>Powtórz hasło</mat-label>
         <input
           matInput
@@ -67,7 +69,7 @@
       </mat-form-field>
 
       <!-- Points from earlier classes -->
-      <mat-form-field appearance="outline" class="my-2 w-full">
+      <mat-form-field appearance="outline" class="w-full">
         <mat-label>Plusy, które już masz (opcjonalnie)</mat-label>
         <input
           matInput
@@ -86,27 +88,40 @@
       @if (serverError(); as message) {
         <div
           role="alert"
-          class="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+          class="mb-2 flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2 text-sm leading-snug text-red-800"
         >
-          {{ message }}
+          <mat-icon class="mt-0.5 shrink-0 text-[18px] leading-none text-red-600" aria-hidden="true">
+            error_outline
+          </mat-icon>
+          <span>{{ message }}</span>
         </div>
       }
 
-      <button mat-flat-button type="submit" class="w-full" [disabled]="submitting()">
+      <button
+        mat-flat-button
+        type="submit"
+        class="mt-1 h-11! w-full! text-sm! font-medium!"
+        [disabled]="submitting()"
+      >
         @if (submitting()) {
-          <span class="inline-flex items-center gap-2">
+          <span class="inline-flex items-center justify-center gap-2">
             <mat-spinner diameter="18" />
-            Zakładanie konta
+            <span>Zakładanie konta…</span>
           </span>
         } @else {
-          Załóż konto
+          <span>Załóż konto</span>
         }
       </button>
     </form>
 
-    <p class="mt-6 text-sm text-slate-600">
+    <p class="mt-5 border-t border-slate-100 pt-4 text-center text-sm text-slate-600">
       Masz już konto?
-      <a routerLink="/login" class="font-medium text-slate-900 underline underline-offset-2">Zaloguj się</a>
+      <a
+        routerLink="/login"
+        class="ml-1 font-medium text-slate-900 underline decoration-slate-300 underline-offset-4 transition-colors hover:text-slate-700 hover:decoration-slate-900 focus-visible:rounded-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+      >
+        Zaloguj się
+      </a>
     </p>
   </section>
 </main>
