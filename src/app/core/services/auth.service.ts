@@ -13,6 +13,15 @@ export type ChangePasswordResult =
   | { ok: true }
   | { ok: false; message: string; /** The current password was wrong. */ wrongCurrent?: boolean };
 
+export type DeleteAccountResult =
+  | { ok: true }
+  | { ok: false; message: string; /** The password was wrong. */ wrongPassword?: boolean };
+
+/** `rpc` without the generated types, used until the types include `delete_account`. */
+type LooseRpc = (
+  fn: string,
+) => PromiseLike<{ error: { code?: string; message: string } | null }>;
+
 @Service()
 export class AuthService {
   private readonly supabase = inject(SupabaseService);
@@ -84,6 +93,51 @@ export class AuthService {
       // The password is already changed; failing to end other sessions must not look like a failure.
     }
     return { ok: true };
+  }
+
+  /**
+   * Permanently deletes the signed-in user's account. The password is checked first by signing in
+   * with it, then the `delete_account` database function removes the account (a client cannot do it
+   * itself). Throws nothing: failures come back as `{ ok: false }`.
+   */
+  async deleteAccount(password: string): Promise<DeleteAccountResult> {
+    const email = this.session.user()?.email;
+    if (!email) {
+      return { ok: false, message: 'Twoja sesja wygasła. Zaloguj się ponownie.' };
+    }
+
+    const check = await this.supabase.client.auth.signInWithPassword({ email, password });
+    if (check.error) {
+      return check.error.code === 'invalid_credentials'
+        ? { ok: false, message: 'Hasło jest nieprawidłowe.', wrongPassword: true }
+        : { ok: false, message: 'Nie udało się sprawdzić hasła. Spróbuj ponownie.' };
+    }
+
+    // TODO: use the typed `rpc` once the generated types contain `delete_account`.
+    const rpc = this.supabase.client.rpc.bind(this.supabase.client) as unknown as LooseRpc;
+    const { error } = await rpc('delete_account');
+    if (error) {
+      return { ok: false, message: this.deleteAccountMessage(error) };
+    }
+
+    // The account is gone, only the stored session is left on this device.
+    try {
+      await this.supabase.client.auth.signOut({ scope: 'local' });
+    } catch {
+      // Nothing to do: the session is invalid anyway.
+    }
+    return { ok: true };
+  }
+
+  private deleteAccountMessage(error: { code?: string; message: string }): string {
+    switch (error.code) {
+      case 'PGRST202': // function not found in the schema cache
+        return 'Usuwanie konta nie jest jeszcze dostępne na serwerze.';
+      case 'P0001': // `raise exception` in the function carries a Polish message
+        return error.message;
+      default:
+        return 'Nie udało się usunąć konta. Spróbuj ponownie.';
+    }
   }
 
   private normalizeEmail(email: string): string {

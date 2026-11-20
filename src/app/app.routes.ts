@@ -28,6 +28,12 @@ export const routes: Routes = [
       import('./features/auth/change-password/change-password').then((m) => m.ChangePassword),
   },
   {
+    path: 'delete-account',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/auth/delete-account/delete-account').then((m) => m.DeleteAccount),
+  },
+  {
     path: 'join-group',
     canActivate: [authGuard],
     loadComponent: () =>
