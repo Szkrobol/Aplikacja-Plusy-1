@@ -2,7 +2,7 @@
 
 Aplikacja dla grup studenckich na zajęciach audytoryjnych (tablicowych). Zastępuje zapisy w arkuszu: studenci zaznaczają podpunkty zadań, które chcą zrobić, aplikacja proponuje sprawiedliwy przydział, a plusy z zajęć są zapisywane w jednym miejscu.
 
-Wersja: **1.0.0**
+Wersja: **1.1.0**
 
 ## Jak to działa
 
