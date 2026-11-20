@@ -50,6 +50,35 @@
           }
         </mat-form-field>
 
+        <!-- Forgotten password: no e-mail reset, the group admin sets a new one -->
+        <div class="-mt-1 mb-2 text-right">
+          <button
+            type="button"
+            class="cursor-pointer text-sm font-medium text-slate-700 underline decoration-slate-300 underline-offset-4 transition-colors hover:text-slate-900 hover:decoration-slate-900 focus-visible:rounded-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+            aria-controls="forgot-password-info"
+            [attr.aria-expanded]="showForgotInfo()"
+            (click)="toggleForgotInfo()"
+          >
+            Zapomniałeś hasła?
+          </button>
+        </div>
+
+        @if (showForgotInfo()) {
+          <div
+            id="forgot-password-info"
+            role="status"
+            class="mb-2 flex items-start gap-2.5 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm leading-snug text-slate-700"
+          >
+            <mat-icon class="mt-0.5 shrink-0 text-[18px] leading-none text-slate-500" aria-hidden="true">
+              info_outline
+            </mat-icon>
+            <span>
+              Aby zmienić hasło, skontaktuj się z administratorem swojej grupy. Ustawi Ci hasło
+              tymczasowe, które po zalogowaniu zmienisz na własne w menu konta (Zmień hasło).
+            </span>
+          </div>
+        }
+
         <!-- Error returned by Supabase -->
         @if (serverError(); as message) {
           <div

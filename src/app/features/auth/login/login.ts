@@ -38,11 +38,17 @@ export class Login {
   protected readonly submitting = signal(false);
   protected readonly serverError = signal<string | null>(null);
   protected readonly hidePassword = signal(true);
+  /** Whether the "forgot password" hint is visible. */
+  protected readonly showForgotInfo = signal(false);
 
   protected readonly appVersion = version;
 
   protected togglePasswordVisibility(): void {
     this.hidePassword.update((hidden) => !hidden);
+  }
+
+  protected toggleForgotInfo(): void {
+    this.showForgotInfo.update((visible) => !visible);
   }
 
   protected async submit(): Promise<void> {
